@@ -1,0 +1,12 @@
+[project]
+name = "damn-vulnerable-llm-app"
+version = "0.1.0"
+description = "A deliberately vulnerable LLM-powered customer service chatbot for studying the OWASP LLM Top 10."
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.96.0",
+    "chromadb>=1.5.8",
+    "fastapi>=0.136.0",
+    "python-dotenv>=1.2.2",
+    "uvicorn>=0.45.0",
+]
