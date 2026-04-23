@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>damn-vulnerable-llm-app — LLM02 lab</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 24px; background: #0f0f0f; color: #e0e0e0; }
+  h1 { margin-top: 0; font-size: 20px; }
+  .disclaimer { background: #3a1f1f; border: 1px solid #8a2b2b; padding: 10px; border-radius: 4px; margin-bottom: 16px; font-size: 13px; }
+  .row { display: flex; gap: 16px; margin-top: 16px; }
+  .panel { flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 12px; min-height: 300px; }
+  .panel h2 { font-size: 14px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px; }
+  .safe h2 { color: #6ab04c; }
+  .vuln h2 { color: #e74c3c; }
+  .reply { font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+  form { display: flex; gap: 8px; margin-top: 12px; }
+  input[type=text] { flex: 1; background: #1a1a1a; color: #e0e0e0; border: 1px solid #444; padding: 8px 12px; border-radius: 4px; font-size: 14px; }
+  button { background: #2a6fdb; color: white; border: 0; padding: 8px 16px; border-radius: 4px; font-size: 14px; cursor: pointer; }
+  button:disabled { background: #555; cursor: not-allowed; }
+  .meta { font-size: 12px; color: #777; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>damn-vulnerable-llm-app — LLM02 Insecure Output Handling lab</h1>
+<div class="disclaimer">
+  This page renders the bot's reply in two ways at once. The <strong>left</strong> panel escapes
+  everything via <code>textContent</code> and is safe. The <strong>right</strong> panel uses
+  <code>innerHTML</code> and will execute any HTML/JavaScript the model returns. This is a
+  deliberate vulnerability for LLM02 testing. Do not deploy.
+</div>
+
+<form id="chat-form">
+  <input type="text" id="message" placeholder="Ask CustomerBot something..." autocomplete="off" required>
+  <button type="submit" id="send">Send</button>
+</form>
+
+<div class="row">
+  <div class="panel safe">
+    <h2>Safe (textContent)</h2>
+    <div class="reply" id="reply-safe"></div>
+    <div class="meta" id="meta-safe"></div>
+  </div>
+  <div class="panel vuln">
+    <h2>Vulnerable (innerHTML)</h2>
+    <div class="reply" id="reply-vuln"></div>
+    <div class="meta" id="meta-vuln"></div>
+  </div>
+</div>
+
+<script>
+const form = document.getElementById('chat-form');
+const input = document.getElementById('message');
+const btn = document.getElementById('send');
+const safeEl = document.getElementById('reply-safe');
+const vulnEl = document.getElementById('reply-vuln');
+const metaSafe = document.getElementById('meta-safe');
+const metaVuln = document.getElementById('meta-vuln');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  btn.disabled = true;
+  safeEl.textContent = '...';
+  vulnEl.textContent = '...';
+  metaSafe.textContent = '';
+  metaVuln.textContent = '';
+
+  try {
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: input.value }),
+    });
+    const data = await res.json();
+    const reply = data.reply || JSON.stringify(data);
+    const docs = (data.retrieved_docs || []).join(', ');
+
+    // SAFE: textContent escapes everything. No HTML execution possible.
+    safeEl.textContent = reply;
+    metaSafe.textContent = 'retrieved: ' + docs;
+
+    // VULNERABLE: innerHTML parses and executes any HTML in the reply.
+    // This is the deliberate LLM02 vulnerability. DO NOT DO THIS IN PRODUCTION.
+    vulnEl.innerHTML = reply;
+    metaVuln.textContent = 'retrieved: ' + docs;
+  } catch (err) {
+    safeEl.textContent = 'Error: ' + err.message;
+    vulnEl.textContent = 'Error: ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

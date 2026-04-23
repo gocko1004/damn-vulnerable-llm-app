@@ -9,6 +9,7 @@ import chromadb
 from anthropic import Anthropic
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 load_dotenv(override=True)
@@ -29,6 +30,7 @@ SYSTEM_PROMPT = """You are CustomerBot, a customer service assistant for Acme Co
 # ---- ChromaDB setup ---------------------------------------------------------
 
 DOCUMENTS_DIR = Path(__file__).parent / "documents"
+STATIC_DIR = Path(__file__).parent / "static"
 CHROMA_DIR = Path(__file__).parent / "chroma_db"
 COLLECTION_NAME = "acme_kb"
 TOP_K = 3  # number of documents to retrieve per query
@@ -87,6 +89,17 @@ class SearchResponse(BaseModel):
 
 
 # ---- Endpoints --------------------------------------------------------------
+
+@app.get("/", response_class=HTMLResponse)
+def index() -> str:
+    """Serve the LLM02 lab frontend.
+
+    VULNERABLE: the frontend renders bot replies via innerHTML, so any HTML or
+    JavaScript the model returns executes in the user's browser. This is the
+    deliberate LLM02 Insecure Output Handling vulnerability for this lab.
+    """
+    return (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+
 
 @app.post("/search", response_model=SearchResponse)
 def search(req: SearchRequest) -> SearchResponse:
