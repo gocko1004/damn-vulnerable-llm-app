@@ -39,3 +39,7 @@ chroma_db/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local working notes, not published
+CLAUDE.md
+SESSION_LOG.md
